@@ -80,7 +80,7 @@ const Success = () => {
           >
             {order.status === 'APROVADO' ? 'Pedido Aprovado!' : order.status === 'EM_ANALISE' ? 'Pedido em Análise' : 'Crédito Reprovado'}
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground" data-testid="success-description">
             {order.status === 'APROVADO'
               ? 'Seu pedido foi processado com sucesso. Em breve entraremos em contato.'
               : order.status === 'EM_ANALISE'

@@ -119,10 +119,10 @@ const OrderLookup = () => {
           <Card className="border-destructive/50 bg-destructive/5 animate-fade-in">
             <CardContent className="py-8 text-center">
               <XCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-foreground mb-2">
+              <h3 className="text-lg font-medium text-foreground mb-2" data-testid="error-order-not-found">
                 Pedido não encontrado
               </h3>
-              <p className="text-muted-foreground">
+              <p className="text-muted-foreground" data-testid="error-order-not-found-description">
                 Verifique o número do pedido e tente novamente
               </p>
             </CardContent>

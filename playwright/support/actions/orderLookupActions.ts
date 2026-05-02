@@ -42,10 +42,10 @@ function buildOrderDetailsAriaSnapshot(order: ResolvedOrderDetails): string {
             - paragraph: Loja de Retirada
             - paragraph
             - paragraph: Data do Pedido
-            - paragraph: /\\d+\\/\\d+\\/\\d+/
+            - paragraph: /\\d{2}\\/\\d{2}\\/\\d{4}/
             - heading "Pagamento" [level=4]
             - paragraph: ${order.payment}
-            - paragraph: /R\\$ \\d+\\.\\d+,\\d+/
+            - paragraph: /R\\$ (\\d+\\.)?\\d+,\\d{2}/
             `
 }
 
@@ -94,11 +94,9 @@ export function createOrderLookupActions(page: Page) {
     },
 
     async validateOrderNotFound() {
-      await expect(page.locator('#root')).toMatchAriaSnapshot(`
-            - img
-            - heading "Pedido não encontrado" [level=3]
-            - paragraph: Verifique o número do pedido e tente novamente
-            `)
+      await expect(page.getByTestId('error-order-not-found')).toBeVisible()
+      await expect(page.getByTestId('error-order-not-found')).toHaveText('Pedido não encontrado')
+      await expect(page.getByTestId('error-order-not-found-description')).toContainText('Verifique o número do pedido e tente novamente')
     },
   }
 }
