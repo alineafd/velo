@@ -1,4 +1,5 @@
 import { Page, expect } from '@playwright/test'
+import { createHomeActions } from './homeActions'
 
 export function createConfiguratorActions(page: Page) {
   return {
@@ -27,6 +28,22 @@ export function createConfiguratorActions(page: Page) {
 
     async checkout() {
       await page.getByRole('button', { name: 'Monte o Seu' }).click()
+    },
+
+    async navigateToCheckout({
+      color = 'Glacier Blue',
+      wheels = 'Aero Wheels',
+    }: {
+      color?: 'Glacier Blue' | 'Midnight Black' | 'Lunar White'
+      wheels?: 'Aero Wheels' | 'Sport Wheels'
+    } = {}) {
+      const home = createHomeActions(page)
+      await home.goto()
+      await home.clickConfigureCta()
+      await page.getByRole('button', { name: color }).click()
+      await page.getByRole('button', { name: wheels }).click()
+      await page.getByRole('button', { name: 'Monte o Seu' }).click()
+      await expect(page).toHaveURL(/.*\/order/)
     },
   }
 }

@@ -30,6 +30,38 @@ export const checkoutCustomers = {
     document: '234.567.890-12',
     store: checkoutStores.fariaLima,
   },
+  ana: {
+    name: 'Ana',
+    lastname: 'Ferreira',
+    email: 'ana.ferreira@email.com',
+    phone: '11977778888',
+    document: '123.456.789-01',
+    store: checkoutStores.paulista,
+  },
+  steve: {
+    name: 'Steve',
+    lastname: 'Jobs',
+    email: 'steve.jobs@email.com',
+    phone: '11977778888',
+    document: '100.498.380-83',
+    store: checkoutStores.paulista,
+  },
+  bill: {
+    name: 'Bill',
+    lastname: 'Gates',
+    email: 'bill.gates@email.com',
+    phone: '11966665555',
+    document: '201.156.660-60',
+    store: checkoutStores.fariaLima,
+  },
+  elon: {
+    name: 'Elon',
+    lastname: 'Musk',
+    email: 'elon.musk@email.com',
+    phone: '11955554444',
+    document: '594.948.290-50',
+    store: checkoutStores.fariaLima,
+  },
 } as const
 
 export const creditDecisionCases = [

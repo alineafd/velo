@@ -82,5 +82,18 @@ export function createCheckoutActions(page: Page) {
       await expect(toastError).toBeVisible()
       await expect(toastError).toContainText('Falha ao consultar análise de crédito')
     },
+
+    async assertSuccessPage({
+      heading,
+      customer,
+    }: {
+      heading: string
+      customer: { name: string; lastname: string; store: string }
+    }) {
+      await expect(page).toHaveURL(/.*\/success/)
+      await expect(page.getByRole('heading', { name: heading })).toBeVisible()
+      await expect(page.getByText(`${customer.name} ${customer.lastname}`)).toBeVisible()
+      await expect(page.getByText(customer.store)).toBeVisible()
+    },
   }
 }

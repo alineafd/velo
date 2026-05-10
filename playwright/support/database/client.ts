@@ -11,16 +11,23 @@ import path from 'path'
 // we use a simple native loader to get DATABASE_URL from .env.
 // ---------------------------------------------------------------------------
 function loadEnv() {
-  const envPath = path.resolve(process.cwd(), '.env')
-  if (fs.existsSync(envPath)) {
-    const envContent = fs.readFileSync(envPath, 'utf8')
-    envContent.split('\n').forEach(line => {
-      const [key, ...valueParts] = line.split('=')
-      if (key && valueParts.length > 0) {
-        const value = valueParts.join('=').trim().replace(/^["']|["']$/g, '')
-        process.env[key.trim()] = value
-      }
-    })
+  const possiblePaths = [
+    path.resolve(process.cwd(), '.env'),
+    path.resolve(process.cwd(), '../.env')
+  ]
+  
+  for (const envPath of possiblePaths) {
+    if (fs.existsSync(envPath)) {
+      const envContent = fs.readFileSync(envPath, 'utf8')
+      envContent.split('\n').forEach(line => {
+        const [key, ...valueParts] = line.split('=')
+        if (key && !key.trim().startsWith('#') && valueParts.length > 0) {
+          const value = valueParts.join('=').trim().replace(/^["']|["']$/g, '')
+          process.env[key.trim()] = value
+        }
+      })
+      break
+    }
   }
 }
 

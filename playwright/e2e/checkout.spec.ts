@@ -9,27 +9,9 @@ import {
 import { deleteAllOrders } from '../support/database/orderFactory'
 
 type CreditRouteMode = 'score' | 'http-500' | 'network-error'
-type CheckoutApp = {
-  checkout: {
-    fillDadosPessoais(data: {
-      name?: string
-      lastname?: string
-      email?: string
-      phone?: string
-      document?: string
-      store?: string
-    }): Promise<void>
-    selectPaymentMethod(method: 'avista' | 'financiamento'): Promise<void>
-    setEntryValue(value: string): Promise<void>
-    checkTerms(): Promise<void>
-    submit(): Promise<void>
-  }
-}
-type CheckoutFixtures = {
-  checkoutReady: void
-}
 
-const testWithCheckout = test.extend<CheckoutFixtures>({
+// ─── Fixture: garante que o checkout está pronto antes de cada teste ──────────
+const testWithCheckout = test.extend<{ checkoutReady: void }>({
   checkoutReady: async ({ app, page }, use) => {
     await app.configurator.goto()
     await app.configurator.checkout()
@@ -37,6 +19,8 @@ const testWithCheckout = test.extend<CheckoutFixtures>({
     await use()
   },
 })
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 async function mockCreditAnalysis(
   page: Page,
@@ -62,7 +46,7 @@ async function runFinancingCheckoutFlow({
   entryValue,
   customer = checkoutCustomers.financiamentoBase,
 }: {
-  app: CheckoutApp
+  app: { checkout: ReturnType<typeof import('../support/actions/checkoutActions').createCheckoutActions> }
   page: Page
   entryValue: string
   customer?: {
@@ -80,6 +64,8 @@ async function runFinancingCheckoutFlow({
   await app.checkout.checkTerms()
   await app.checkout.submit()
 }
+
+// ─── Suite: testes unitários de checkout (mock de navegação via fixture) ──────
 
 testWithCheckout.describe('Checkout', () => {
   testWithCheckout.beforeEach(async ({ checkoutReady }) => {
@@ -171,16 +157,12 @@ testWithCheckout.describe('Checkout', () => {
     testWithCheckout('CT04.7 - Exige aceite dos termos para concluir pedido', async ({ app, page, checkoutReady }) => {
       void checkoutReady
       await expect(page).toHaveURL(/.*\/order/)
-      await app.checkout.fillDadosPessoais({
-        ...checkoutCustomers.joao,
-      })
+      await app.checkout.fillDadosPessoais({ ...checkoutCustomers.joao })
       await app.checkout.submit()
       await app.checkout.assertErrorMessages(['Aceite os termos'])
       await app.checkout.assertFieldInvalid('terms')
       await expect(page).toHaveURL(/.*\/order/)
     })
-
-
   })
 
   testWithCheckout.describe('Financiamento - decisão de crédito', () => {
@@ -189,8 +171,10 @@ testWithCheckout.describe('Checkout', () => {
         void checkoutReady
         await mockCreditAnalysis(page, 'score', scenario.score)
         await runFinancingCheckoutFlow({ app, page, entryValue: scenario.entryValue })
-        await expect(page).toHaveURL(/.*\/success/)
-        await expect(page.getByRole('heading', { name: scenario.expectedHeading })).toBeVisible()
+        await app.checkout.assertSuccessPage({
+          heading: scenario.expectedHeading,
+          customer: checkoutCustomers.financiamentoBase,
+        })
       })
     }
   })
@@ -201,8 +185,10 @@ testWithCheckout.describe('Checkout', () => {
         void checkoutReady
         await mockCreditAnalysis(page, 'score', scenario.score)
         await runFinancingCheckoutFlow({ app, page, entryValue: scenario.entryValue })
-        await expect(page).toHaveURL(/.*\/success/)
-        await expect(page.getByRole('heading', { name: scenario.expectedHeading })).toBeVisible()
+        await app.checkout.assertSuccessPage({
+          heading: scenario.expectedHeading,
+          customer: checkoutCustomers.financiamentoBase,
+        })
       })
     }
   })
@@ -226,43 +212,85 @@ testWithCheckout.describe('Checkout', () => {
   })
 })
 
+// ─── Suite: E2E Fluxo Completo (navega do zero) ───────────────────────────────
+
 test.describe('E2E Checkout - Fluxo Completo', () => {
   test.afterEach(async () => {
     await deleteAllOrders()
   })
 
   test('CT05 - E2E Pagamento à Vista (Fluxo Feliz)', async ({ app, page }) => {
-    const testData = {
-      name: 'Ana',
-      lastname: 'Ferreira',
-      email: 'ana.ferreira@email.com',
-      phone: '11977778888',
-      document: '123.456.789-01',
-      store: checkoutStores.paulista,
-    }
+    const customer = checkoutCustomers.ana
 
-    // Arrange: Navegação E2E
-    await app.home.goto()
-    await app.home.clickConfigureCta()
-
-    // Selecionando opções padrão no configurador
-    await app.configurator.selectColor('Glacier Blue')
-    await app.configurator.selectWheels('Aero Wheels')
-    await app.configurator.checkout()
-
-    // Arrange: Preenchimento do Checkout
-    await expect(page).toHaveURL(/.*\/order/)
-    await app.checkout.fillDadosPessoais(testData)
+    await app.configurator.navigateToCheckout()
+    await app.checkout.fillDadosPessoais(customer)
     await app.checkout.selectPaymentMethod('avista')
     await app.checkout.checkTerms()
-
-    // Act
     await app.checkout.submit()
 
-    // Assert
-    await expect(page).toHaveURL(/.*\/success/)
-    await expect(page.getByRole('heading', { name: 'Pedido Aprovado!' })).toBeVisible()
-    await expect(page.getByText(`${testData.name} ${testData.lastname}`)).toBeVisible()
-    await expect(page.getByText(testData.store)).toBeVisible()
+    await app.checkout.assertSuccessPage({ heading: 'Pedido Aprovado!', customer })
+  })
+
+  test('CT06 - Checkout e Análise de Crédito - Financiamento com Score Alto (Aprovado)', async ({ app, page }) => {
+    const customer = checkoutCustomers.steve
+
+    await app.configurator.navigateToCheckout()
+    await app.checkout.fillDadosPessoais(customer)
+    await app.checkout.selectPaymentMethod('financiamento')
+    await app.checkout.setEntryValue('0')
+    await expect(page.getByText('12x de R$ 3.400,00')).toBeVisible()
+    await app.checkout.checkTerms()
+    await mockCreditAnalysis(page, 'score', 850)
+    await app.checkout.submit()
+
+    await app.checkout.assertSuccessPage({ heading: 'Pedido Aprovado!', customer })
+  })
+
+  test('CT07 - Checkout e Análise de Crédito - Financiamento com Score Médio (Em análise)', async ({ app, page }) => {
+    const customer = checkoutCustomers.bill
+
+    await app.configurator.navigateToCheckout()
+    await app.checkout.fillDadosPessoais(customer)
+    await app.checkout.selectPaymentMethod('financiamento')
+    await app.checkout.setEntryValue('0')
+    await expect(page.getByText('12x de R$ 3.400,00')).toBeVisible()
+    await app.checkout.checkTerms()
+    await mockCreditAnalysis(page, 'score', 600)
+    await app.checkout.submit()
+
+    await app.checkout.assertSuccessPage({ heading: 'Pedido em Análise', customer })
+  })
+
+  test('CT08-A - Checkout e Análise de Crédito - Score Baixo (Reprovado), entrada < 50%', async ({ app, page }) => {
+    const customer = checkoutCustomers.elon
+
+    await app.configurator.navigateToCheckout()
+    await app.checkout.fillDadosPessoais(customer)
+    await app.checkout.selectPaymentMethod('financiamento')
+    await app.checkout.setEntryValue('0')
+    await expect(page.getByText('12x de R$ 3.400,00')).toBeVisible()
+    await app.checkout.checkTerms()
+    await mockCreditAnalysis(page, 'score', 450)
+    await app.checkout.submit()
+
+    await app.checkout.assertSuccessPage({ heading: 'Crédito Reprovado', customer })
+  })
+
+  test('CT08-B - Checkout e Análise de Crédito - Score Baixo (Aprovado), entrada >= 50%', async ({ app, page }) => {
+    const customer = checkoutCustomers.elon
+
+    await app.configurator.navigateToCheckout()
+    await app.checkout.fillDadosPessoais(customer)
+    await app.checkout.selectPaymentMethod('financiamento')
+    // Valor da entrada maior que 50% (R$ 25.000 de R$ 40.000)
+    await app.checkout.setEntryValue('25000')
+    // Cálculo: (15000 / 12) * 1.02 = 1275.00
+    await expect(page.getByText('12x de R$ 1.275,00')).toBeVisible()
+    await app.checkout.checkTerms()
+    await mockCreditAnalysis(page, 'score', 450)
+    await app.checkout.submit()
+
+    // Regra CT09: Entrada >= 50% aprova o pedido independentemente do score baixo
+    await app.checkout.assertSuccessPage({ heading: 'Pedido Aprovado!', customer })
   })
 })
