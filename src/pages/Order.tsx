@@ -4,6 +4,7 @@ import InputMask from 'react-input-mask';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { z } from 'zod';
 import { cn } from '@/lib/utils';
+import { determineCreditStatus } from '@/lib/creditDecision';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -152,25 +153,9 @@ const Order = () => {
         }
 
         const score = data.score;
-        const entryPercentage = entryValue / totalPrice;
 
-        // Regras de Decisão (Ordem de Avaliação)
-        // 1️⃣ Regra da Entrada Alta: SE (Entrada >= 50% do Total) E (Score < 700) → APROVADO
-        if (entryPercentage >= 0.5 && score < 700) {
-          orderStatus = 'APROVADO';
-        }
-        // 2️⃣ Score Alto: SE Score > 700 → APROVADO
-        else if (score > 700) {
-          orderStatus = 'APROVADO';
-        }
-        // 3️⃣ Score Médio: SE Score entre 501 e 700 → EM_ANALISE
-        else if (score >= 501 && score <= 700) {
-          orderStatus = 'EM_ANALISE';
-        }
-        // 4️⃣ Score Baixo: SE Score <= 500 → REPROVADO
-        else {
-          orderStatus = 'REPROVADO';
-        }
+        // Delegando a decisão para a função pura em src/lib/creditDecision.ts
+        orderStatus = determineCreditStatus(score, totalPrice, entryValue);
 
       } catch (err) {
         console.error('Credit analysis network error:', err);
