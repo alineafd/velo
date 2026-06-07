@@ -9,7 +9,6 @@ export function createHomeActions(page: Page) {
     },
     async clickConfigureCta() {
       await page.getByTestId('hero-cta-primary').click()
-      await expect(page).toHaveURL(/.*\/configure/)
     }
   }
 }

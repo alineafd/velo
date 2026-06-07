@@ -28,7 +28,7 @@ export default defineConfig({
   reporter: 'html',
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
-    baseURL: 'http://localhost:5173',
+    baseURL: 'https://velo-alineafd.vercel.app/',
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
@@ -75,7 +75,7 @@ export default defineConfig({
   /* Sobe o Vite quando nenhum servidor estiver ouvindo em 5173 (reutiliza se já existir). */
   webServer: {
     command: 'npm run dev',
-    url: 'http://localhost:5173',
+    url: 'https://velo-alineafd.vercel.app/',
     reuseExistingServer: !process.env.CI,
   },
 });

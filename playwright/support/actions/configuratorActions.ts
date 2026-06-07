@@ -4,10 +4,12 @@ import { createHomeActions } from './homeActions'
 export function createConfiguratorActions(page: Page) {
   return {
     async goto() {
-      await page.goto('/configure')
+      const home = createHomeActions(page)
+      await home.goto()
+      await home.clickConfigureCta()
 
-      await expect(page.getByText('Configure seu')).toBeVisible()
-      await expect(page.getByRole('heading', { name: 'Velô Sprint' })).toBeVisible()
+      await expect(page.getByText('Configure seu', { exact: true })).toBeVisible()
+      await expect(page.getByRole('heading', { name: 'Velô Sprint', exact: true })).toBeVisible()
     },
 
     async selectColor(color: 'Glacier Blue' | 'Midnight Black' | 'Lunar White') {

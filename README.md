@@ -102,8 +102,7 @@ src/
 
 | Rota | Descrição |
 |------|-----------|
-| `/` | Landing page |
-| `/configure` | Configurador do veículo |
+| `/` | Landing page / Configurador do veículo |
 | `/order` | Checkout/Pedido |
 | `/success` | Confirmação do pedido |
 | `/lookup` | Consulta de pedidos |

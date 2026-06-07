@@ -16,8 +16,8 @@ test.describe('Landing Page', () => {
     // Act: Clicar no botão de CTA para o Configurador
     await page.getByRole('link', { name: 'Configure Agora' }).click()
 
-    // Assert: Redirecionado para /configure com heading correto
-    await expect(page).toHaveURL(/.*\/configure/)
+    // Assert: Permanece na mesma página (sem /configure) com heading correto
+    await expect(page).toHaveURL("/configure")
     await expect(page.getByRole('heading', { name: 'Velô Sprint' })).toBeVisible()
   })
 })

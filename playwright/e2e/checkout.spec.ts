@@ -169,7 +169,7 @@ testWithCheckout.describe('Checkout', () => {
     for (const scenario of creditDecisionCases) {
       testWithCheckout(`${scenario.id} - ${scenario.title}`, async ({ app, page, checkoutReady }) => {
         void checkoutReady
-        await mockCreditAnalysis(page, 'score', scenario.score)
+        await app.mock.creditAnalysis(scenario.score)
         await runFinancingCheckoutFlow({ app, page, entryValue: scenario.entryValue })
         await app.checkout.assertSuccessPage({
           heading: scenario.expectedHeading,
@@ -183,7 +183,7 @@ testWithCheckout.describe('Checkout', () => {
     for (const scenario of creditBoundaryCases) {
       testWithCheckout(`${scenario.id} - ${scenario.title}`, async ({ app, page, checkoutReady }) => {
         void checkoutReady
-        await mockCreditAnalysis(page, 'score', scenario.score)
+        await app.mock.creditAnalysis(scenario.score)
         await runFinancingCheckoutFlow({ app, page, entryValue: scenario.entryValue })
         await app.checkout.assertSuccessPage({
           heading: scenario.expectedHeading,
@@ -240,7 +240,7 @@ test.describe('E2E Checkout - Fluxo Completo', () => {
     await app.checkout.setEntryValue('0')
     await expect(page.getByText('12x de R$ 3.400,00')).toBeVisible()
     await app.checkout.checkTerms()
-    await mockCreditAnalysis(page, 'score', 850)
+    await app.mock.creditAnalysis(710)
     await app.checkout.submit()
 
     await app.checkout.assertSuccessPage({ heading: 'Pedido Aprovado!', customer })
@@ -255,7 +255,7 @@ test.describe('E2E Checkout - Fluxo Completo', () => {
     await app.checkout.setEntryValue('0')
     await expect(page.getByText('12x de R$ 3.400,00')).toBeVisible()
     await app.checkout.checkTerms()
-    await mockCreditAnalysis(page, 'score', 600)
+    await app.mock.creditAnalysis(600)
     await app.checkout.submit()
 
     await app.checkout.assertSuccessPage({ heading: 'Pedido em Análise', customer })
@@ -270,7 +270,7 @@ test.describe('E2E Checkout - Fluxo Completo', () => {
     await app.checkout.setEntryValue('0')
     await expect(page.getByText('12x de R$ 3.400,00')).toBeVisible()
     await app.checkout.checkTerms()
-    await mockCreditAnalysis(page, 'score', 450)
+    await app.mock.creditAnalysis(450)
     await app.checkout.submit()
 
     await app.checkout.assertSuccessPage({ heading: 'Crédito Reprovado', customer })
@@ -287,7 +287,7 @@ test.describe('E2E Checkout - Fluxo Completo', () => {
     // Cálculo: (15000 / 12) * 1.02 = 1275.00
     await expect(page.getByText('12x de R$ 1.275,00')).toBeVisible()
     await app.checkout.checkTerms()
-    await mockCreditAnalysis(page, 'score', 450)
+    await app.mock.creditAnalysis(450)
     await app.checkout.submit()
 
     // Regra CT09: Entrada >= 50% aprova o pedido independentemente do score baixo

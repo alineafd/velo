@@ -17,14 +17,14 @@ Garantir que o Cliente consegue acessar a página inicial, visualizar as informa
 | Id | Ação | Resultado Esperado |
 |----|------|--------------------|
 | 1  | Acessar a URL base do sistema | A Landing Page é carregada com sucesso exibindo o Hero, Especificações, FAQ e CTA. |
-| 2  | Clicar no botão para configurar ou reservar o veículo | O sistema deve redirecionar o Cliente para a página do Configurador (`/configure`). |
+| 2  | Clicar no botão para configurar ou reservar o veículo | O sistema deve redirecionar o Cliente para a página do Configurador. |
 
 #### Resultados Esperados
 - O sistema apresenta as informações corretamente e navega para a página de configuração ao ser acionado o CTA.
 
 #### Critérios de Aceitação
 - A página carrega sem erros visuais.
-- O redirecionamento para o configurador (`/configure`) funciona.
+- O redirecionamento para o configurador funciona.
 
 ---
 
@@ -34,7 +34,7 @@ Garantir que o Cliente consegue acessar a página inicial, visualizar as informa
 Validar se as escolhas de cores e rodas ("Sport") refletem corretamente no preço final exibido.
 
 #### Pré-Condições
-- Estar na página do Configurador (`/configure`).
+- Estar na página do Configurador.
 - Preço base inicial deve ser de R$ 40.000,00 (Cor padrão + Rodas "Aero").
 
 #### Passos

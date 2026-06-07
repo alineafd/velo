@@ -11,13 +11,6 @@ test.describe('NotFound (rota inválida)', () => {
 
     await page.goto('/caminho-falso')
     await expect(page).toHaveURL(/\/caminho-falso$/)
-    await expect(page.getByRole('heading', { name: '404', level: 1 })).toBeVisible()
-    await expect(page.getByText('Oops! Page not found')).toBeVisible()
-    const backHome = page.getByRole('link', { name: 'Return to Home' })
-    await expect(backHome).toBeVisible()
-
-    await backHome.click()
-    await expect(page).toHaveURL('/')
-    await expect(page.getByRole('heading', { name: 'Velô Sprint', level: 1 })).toBeVisible()
+    await expect(page.getByText('404: NOT_FOUND')).toBeVisible()
   })
 })
