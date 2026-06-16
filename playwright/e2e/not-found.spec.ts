@@ -11,6 +11,7 @@ test.describe('NotFound (rota inválida)', () => {
 
     await page.goto('/caminho-falso')
     await expect(page).toHaveURL(/\/caminho-falso$/)
-    await expect(page.getByText('404: NOT_FOUND')).toBeVisible()
+    await expect(page.getByText('404')).toBeVisible()
+    await expect(page.getByText('Oops! Page not found')).toBeVisible()
   })
 })
