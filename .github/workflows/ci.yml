@@ -109,18 +109,18 @@ jobs:
 
       # Instalação das dependências do sistema operacional
       - name: Install Playwright Operating System Dependencies
-        run: npx playwright install-deps chromium
+        run: yarn exec playwright install-deps chromium
 
-      # Instalação do Chromium usando npx
+      # Instalação do Chromium usando o executável do Yarn
       - name: Install Playwright Browsers
-        run: npx playwright install chromium
+        run: yarn exec playwright install chromium
 
-      # Execução dos testes de regressão usando npx
+      # Execução dos testes apontando direto para o binário do projeto
       - name: Run E2E Regression Tests
-        run: npx playwright test playwright/e2e
+        run: yarn exec playwright test playwright/e2e
         env:
           BASE_URL: ${{ needs.build-and-deploy.outputs.deployment-url }}
-
+          
       # Relatório de Testes Automatizados
       - name: Upload Playwright report
         if: ${{ !cancelled() }}
