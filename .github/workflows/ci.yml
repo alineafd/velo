@@ -107,17 +107,17 @@ jobs:
       - name: Enable Corepack
         run: corepack enable
 
-      # Instalação das dependências do sistema operacional (modo não interativo)
+      # Instalação das dependências do sistema operacional
       - name: Install Playwright Operating System Dependencies
         run: npx playwright install-deps chromium
 
-      # Instalação do Chromium em si
+      # Instalação do Chromium usando npx
       - name: Install Playwright Browsers
-        run: yarn playwright install chromium
-        
-      # Execução dos testes de regressão
+        run: npx playwright install chromium
+
+      # Execução dos testes de regressão usando npx
       - name: Run E2E Regression Tests
-        run: yarn playwright test
+        run: npx playwright test playwright/e2e
         env:
           BASE_URL: ${{ needs.build-and-deploy.outputs.deployment-url }}
 
