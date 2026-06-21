@@ -75,7 +75,7 @@ export default defineConfig({
   /* Sobe o Vite quando nenhum servidor estiver ouvindo em 5173 (reutiliza se já existir). */
   webServer: {
     command: 'npm run dev',
-    url: 'https://velo-edcexooc2-aline-dias-projects.vercel.app/',
+    url: process.env.BASE_URL || 'http://localhost:5173',
     reuseExistingServer: !process.env.CI,
   },
 });
