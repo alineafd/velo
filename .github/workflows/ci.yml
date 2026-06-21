@@ -107,20 +107,20 @@ jobs:
       - name: Enable Corepack
         run: corepack enable
 
-      # Instalação das dependências do sistema operacional
+      # Instalação das dependências do sistema operacional apontando direto para o binário
       - name: Install Playwright Operating System Dependencies
-        run: yarn exec playwright install-deps chromium
+        run: ./node_modules/.bin/playwright install-deps chromium
 
-      # Instalação do Chromium usando o executável do Yarn
+      # Instalação do Chromium apontando direto para o binário
       - name: Install Playwright Browsers
-        run: yarn exec playwright install chromium
+        run: ./node_modules/.bin/playwright install chromium
 
-      # Execução dos testes apontando direto para o binário do projeto
+      # Execução dos testes apontando direto para o binário
       - name: Run E2E Regression Tests
-        run: yarn exec playwright test playwright/e2e
+        run: ./node_modules/.bin/playwright test playwright/e2e
         env:
           BASE_URL: ${{ needs.build-and-deploy.outputs.deployment-url }}
-          
+              
       # Relatório de Testes Automatizados
       - name: Upload Playwright report
         if: ${{ !cancelled() }}
