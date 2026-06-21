@@ -107,14 +107,14 @@ jobs:
       - name: Enable Corepack
         run: corepack enable
 
-      # Instala as dependências utilizando o lockfile do projeto
-      - name: Install Dependencies
-        run: yarn install --immutable
+      # Instalação das dependências do sistema operacional (modo não interativo)
+      - name: Install Playwright Operating System Dependencies
+        run: npx playwright install-deps chromium
 
-      # Instalação do Chromium
+      # Instalação do Chromium em si
       - name: Install Playwright Browsers
-        run:  yarn playwright install --with-deps chromium
-
+        run: yarn playwright install chromium
+        
       # Execução dos testes de regressão
       - name: Run E2E Regression Tests
         run: yarn playwright test
