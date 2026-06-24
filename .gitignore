@@ -6,7 +6,6 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
-
 node_modules
 dist
 dist-ssr
@@ -31,3 +30,10 @@ dist-ssr
 /playwright/.auth/
 
 .vercel
+
+# Variáveis de ambiente / segredos (ALTERAÇÃO: faltava esta linha)
+# Sem isso, o .env é versionado e qualquer chave colocada nele vai para o
+# histórico do git, mesmo que o arquivo seja apagado depois.
+.env
+.env.local
+.env.*.local

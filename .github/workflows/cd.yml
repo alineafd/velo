@@ -1,5 +1,14 @@
 # Workflow de Integração Contínua (CI) e Entrega Contínua (CD)
 # Objetivo: Executar testes unitários, fazer deploy de preview na Vercel, rodar testes E2E e promover para produção.
+#
+# ALTERAÇÃO (preview com banco isolado):
+# O job "promote" deixou de usar `vercel promote`, pois esse comando apenas reaponta
+# o domínio de produção para o build de preview já existente — e esse build foi gerado
+# com as variáveis VITE_SUPABASE_* do ambiente Preview (apontando para o Supabase de preview).
+# Como variáveis VITE_* são embutidas no bundle em tempo de build, reaproveitar o build de
+# preview faria a produção continuar conversando com o banco de preview.
+# A solução escolhida foi gerar um NOVO build no job de promote, agora puxando as
+# variáveis do ambiente Production da Vercel, e fazer o deploy direto para produção.
 
 name: Continuous Deployment
 
@@ -42,14 +51,14 @@ jobs:
       # Executa os testes unitários com Vitest
       - name: Run Unit Tests
         run: yarn test
-      
+
   build-and-deploy:
     name: Build & Deploy Vercel Preview
     needs: [unit-tests]
     runs-on: ubuntu-latest
     outputs:
       deployment-url: ${{ steps.vercel_deploy.outputs.deployment_url }}
-    
+
     steps:
       # Realiza o checkout do código-fonte do repositório
       - name: Checkout Repository
@@ -69,11 +78,13 @@ jobs:
       - name: Install Dependencies
         run: yarn install --immutable
 
-      # Obter as configurações do vercel
+      # Obter as configurações do vercel para o ambiente de PREVIEW
+      # As variáveis VITE_SUPABASE_* cadastradas no ambiente "Preview" da Vercel
+      # devem apontar para o projeto Supabase de preview.
       - name: Pull Vercel Config
         run: yarn vercel pull --yes --environment=preview --token=$VERCEL_TOKEN --scope=$VERCEL_SCOPE
 
-      # Build para o vercel
+      # Build para o vercel (aqui as variáveis VITE_* de preview são embutidas no bundle)
       - name: Build Vercel
         run: yarn vercel build --token=$VERCEL_TOKEN
 
@@ -117,11 +128,13 @@ jobs:
         run: yarn playwright install chromium
 
       # Execução dos testes E2E
+      # BASE_URL aponta para o deployment de preview, que está conectado ao Supabase de preview.
+      # Qualquer pedido criado por esses testes vai para o banco de preview, não o de produção.
       - name: Run E2E Regression Tests
         run: yarn playwright test playwright/e2e
         env:
           BASE_URL: ${{ needs.build-and-deploy.outputs.deployment-url }}
-              
+
       # Relatório de Testes Automatizados
       - name: Upload Playwright report
         if: ${{ !cancelled() }}
@@ -131,14 +144,40 @@ jobs:
           path: playwright-report
 
   promote:
-    name: Promote to Production
+    name: Build & Deploy to Production
     needs: [e2e-tests]
     runs-on: ubuntu-latest
 
     steps:
-      - name: Vercel Promote
-        run: |
-          npx vercel@latest promote ${{ needs.build-and-deploy.outputs.deployment-url }} \
-            --token=$VERCEL_TOKEN \
-            --scope=$VERCEL_SCOPE \
-            --yes
+      # Realiza o checkout do código-fonte do repositório
+      - name: Checkout Repository
+        uses: actions/checkout@v6.0.2
+
+      # Configura a versão do Node.js utilizada pelo projeto
+      - name: Setup Node.js
+        uses: actions/setup-node@v6.4.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      # Habilita o Corepack para gerenciamento do Yarn
+      - name: Enable Corepack
+        run: corepack enable
+
+      # Instala as dependências utilizando o lockfile do projeto
+      - name: Install Dependencies
+        run: yarn install --immutable
+
+      # Obter as configurações do vercel para o ambiente de PRODUCTION
+      # Aqui está a virada de chave: puxamos as variáveis VITE_SUPABASE_* cadastradas
+      # no ambiente "Production" da Vercel, que apontam para o Supabase de produção.
+      - name: Pull Vercel Config
+        run: yarn vercel pull --yes --environment=production --token=$VERCEL_TOKEN --scope=$VERCEL_SCOPE
+
+      # Gera um NOVO build, agora com as variáveis de produção embutidas no bundle.
+      # Não reaproveitamos o build de preview: ele tem os valores de preview "gravados".
+      - name: Build Vercel
+        run: yarn vercel build --prod --token=$VERCEL_TOKEN
+
+      # Deploy direto para produção, usando o build que acabamos de gerar
+      - name: Deploy Vercel to Production
+        run: yarn vercel deploy --prebuilt --prod --token=$VERCEL_TOKEN --scope=$VERCEL_SCOPE
