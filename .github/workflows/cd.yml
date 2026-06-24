@@ -123,11 +123,14 @@ jobs:
         run: yarn install --immutable
 
       # Descobre a versão exata do Playwright instalada, para usar na chave do cache.
-      # Isso garante que, se a versão mudar (ex.: atualização do package.json), o cache
-      # antigo é invalidado automaticamente e um novo download acontece.
+      # ALTERAÇÃO: o comando "yarn playwright --version" imprime duas linhas — a primeira é
+      # o eco do próprio yarn mostrando o caminho do binário ("$ .../playwright --version"),
+      # e só a segunda é a saída real ("Version 1.58.2"). O awk estava pegando a 2ª palavra
+      # da primeira linha (o caminho do binário) em vez do número da versão. A correção usa
+      # grep para isolar a linha que contém "Version" antes de extrair o número.
       - name: Get Playwright Version
         id: playwright-version
-        run: echo "version=$(yarn playwright --version | awk '{print $2}')" >> $GITHUB_OUTPUT
+        run: echo "version=$(yarn playwright --version | grep -oP 'Version \K[0-9.]+')" >> $GITHUB_OUTPUT
 
       # Cache dos browsers do Playwright entre execuções do pipeline.
       # ALTERAÇÃO: sem cache, toda execução baixava o Chromium do zero (~170MB),
