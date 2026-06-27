@@ -101,7 +101,7 @@ jobs:
     name: Run E2E Tests
     needs: [build-and-deploy]
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
 
     steps:
       # Realiza o checkout do código-fonte do repositório
@@ -123,37 +123,52 @@ jobs:
         run: yarn install --immutable
 
       # Descobre a versão exata do Playwright instalada, para usar na chave do cache.
-      # ALTERAÇÃO: o comando "yarn playwright --version" imprime duas linhas — a primeira é
+      # O comando "yarn playwright --version" imprime duas linhas — a primeira é
       # o eco do próprio yarn mostrando o caminho do binário ("$ .../playwright --version"),
-      # e só a segunda é a saída real ("Version 1.58.2"). O awk estava pegando a 2ª palavra
-      # da primeira linha (o caminho do binário) em vez do número da versão. A correção usa
-      # grep para isolar a linha que contém "Version" antes de extrair o número.
+      # e só a segunda é a saída real ("Version 1.58.2"). Usamos grep para isolar a linha
+      # que contém "Version" antes de extrair o número.
+      # DIAGNÓSTICO: imprimimos o valor capturado no log, para confirmar visualmente que
+      # a versão não veio vazia (o que invalidaria a chave do cache silenciosamente).
       - name: Get Playwright Version
         id: playwright-version
-        run: echo "version=$(yarn playwright --version | grep -oP 'Version \K[0-9.]+')" >> $GITHUB_OUTPUT
+        run: |
+          VERSION=$(yarn playwright --version | grep -oP 'Version \K[0-9.]+')
+          echo "Versão capturada: '$VERSION'"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       # Cache dos browsers do Playwright entre execuções do pipeline.
-      # ALTERAÇÃO: sem cache, toda execução baixava o Chromium do zero (~170MB),
-      # o que tornava o passo de instalação sujeito a lentidão de rede e mais propenso
-      # a estourar o timeout. Com o cache, a partir da 2ª execução o download é evitado.
+      # Sem cache, toda execução baixava o Chromium do zero (~170MB), o que tornava
+      # o passo de instalação sujeito a lentidão de rede e mais propenso a estourar
+      # o timeout. Com o cache, a partir da 2ª execução o download é evitado.
+      # restore-keys: caso a chave exata não exista (ex.: versão mudou), tenta reaproveitar
+      # qualquer cache salvo para o mesmo OS, em vez de partir sempre do zero.
       - name: Cache Playwright Browsers
         id: playwright-cache
         uses: actions/cache@v4
         with:
           path: ~/.cache/ms-playwright
           key: playwright-browsers-${{ runner.os }}-${{ steps.playwright-version.outputs.version }}
+          restore-keys: |
+            playwright-browsers-${{ runner.os }}-
+
+      # DIAGNÓSTICO: confirma no log se o cache foi encontrado (true) ou não (false/vazio),
+      # e qual chave foi usada — assim qualquer falha de cache fica visível imediatamente,
+      # em vez de só percebermos pelo tempo de execução do passo seguinte.
+      - name: Debug Cache Status
+        run: |
+          echo "cache-hit: '${{ steps.playwright-cache.outputs.cache-hit }}'"
+          echo "chave usada: playwright-browsers-${{ runner.os }}-${{ steps.playwright-version.outputs.version }}"
 
       # Instalação das dependências do sistema operacional via Playwright
-      # ALTERAÇÃO: usamos DEBIAN_FRONTEND=noninteractive para evitar que o apt-get fique
-      # esperando uma confirmação interativa (ex.: troca de fuso horário, prompts de pacote)
-      # que nunca chega num runner do GitHub Actions.
-      # O timeout deste passo foi aumentado para 12 minutos: o log confirmou que a instalação
-      # não trava — ela apenas demora (apt update + ~9 pacotes de fonte + download de ~167MB
-      # do Chrome), e o timeout anterior (5min) cortava o processo justamente quando o
-      # download do Chrome chegava a 100%. Quando há cache válido (cache-hit), só as
-      # dependências de sistema são reinstaladas, sem baixar o binário do Chromium de novo.
+      # Usamos DEBIAN_FRONTEND=noninteractive para evitar que o apt-get fique esperando
+      # uma confirmação interativa que nunca chega num runner do GitHub Actions.
+      # O timeout deste passo foi aumentado para 18 minutos: a instalação não trava — ela
+      # apenas demora (apt update + ~9 pacotes de fonte + download de ~167MB do Chrome) —
+      # e timeouts mais curtos (5min, depois 12min) já cortaram o processo perto do fim
+      # em execuções anteriores. Quando há cache válido (cache-hit), só as dependências
+      # de sistema são reinstaladas, sem baixar o binário do Chromium de novo.
       - name: Install Playwright Browsers (with OS deps)
-        timeout-minutes: 12
+        timeout-minutes: 18
         env:
           DEBIAN_FRONTEND: noninteractive
         run: |
@@ -162,6 +177,7 @@ jobs:
           else
             yarn playwright install --with-deps chromium
           fi
+
 
       # Execução dos testes E2E
       # BASE_URL aponta para o deployment de preview, que está conectado ao Supabase de preview.
