@@ -176,17 +176,30 @@ jobs:
         run: yarn playwright install-deps chromium
 
       # Download/instalação do binário do Chromium, separado do passo anterior.
-      # DIAGNÓSTICO: em 3 execuções seguidas o log mostrou a barra de progresso chegando a
-      # 100% e o passo ainda assim estourando o timeout depois disso — sinal de que algo
-      # acontece DEPOIS do download "visível" (extração, verificação, ou trava real de I/O).
-      # DEBUG=pw:install liga os logs internos do instalador do Playwright, que normalmente
-      # ficam ocultos, para revelar o que ocorre nesse intervalo.
+      # DIAGNÓSTICO CONFIRMADO até aqui: o download de 167MB leva ~1.4 segundos (não é rede).
+      # O log para exatamente em "extracting archive" e nada mais aparece até o timeout.
+      # Em vez de seguir empilhando hipóteses não verificadas, este passo roda a instalação
+      # em segundo plano e monitora ativamente o processo (CPU/memória/arquivos abertos) a
+      # cada 15s. Isso nos diz, com certeza, se a extração está REALMENTE travada (processo
+      # parado, 0% CPU) ou apenas demorando sem imprimir log (processo ativo, consumindo CPU).
       - name: Install Chromium Browser
         if: steps.playwright-cache.outputs.cache-hit != 'true'
         timeout-minutes: 15
         env:
           DEBUG: pw:install
-        run: yarn playwright install chromium
+        run: |
+          yarn playwright install chromium &
+          PW_PID=$!
+          echo "Processo de instalação iniciado com PID $PW_PID"
+          while kill -0 $PW_PID 2>/dev/null; do
+            echo "--- $(date -u +%H:%M:%S) — processo $PW_PID ainda rodando ---"
+            ps -o pid,%cpu,%mem,etime,cmd -p $PW_PID || true
+            ls -la /tmp/playwright-download-*/ 2>/dev/null || echo "(sem pasta de download temporária)"
+            find ~/.cache/ms-playwright -maxdepth 2 2>/dev/null | head -20 || echo "(diretório de browsers ainda não existe)"
+            sleep 15
+          done
+          wait $PW_PID
+          echo "Processo de instalação terminou com código $?"
 
 
       # Execução dos testes E2E
