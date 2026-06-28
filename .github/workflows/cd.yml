@@ -159,24 +159,34 @@ jobs:
           echo "cache-hit: '${{ steps.playwright-cache.outputs.cache-hit }}'"
           echo "chave usada: playwright-browsers-${{ runner.os }}-${{ steps.playwright-version.outputs.version }}"
 
-      # Instalação das dependências do sistema operacional via Playwright
-      # Usamos DEBIAN_FRONTEND=noninteractive para evitar que o apt-get fique esperando
-      # uma confirmação interativa que nunca chega num runner do GitHub Actions.
-      # O timeout deste passo foi aumentado para 18 minutos: a instalação não trava — ela
-      # apenas demora (apt update + ~9 pacotes de fonte + download de ~167MB do Chrome) —
-      # e timeouts mais curtos (5min, depois 12min) já cortaram o processo perto do fim
-      # em execuções anteriores. Quando há cache válido (cache-hit), só as dependências
-      # de sistema são reinstaladas, sem baixar o binário do Chromium de novo.
-      - name: Install Playwright Browsers (with OS deps)
-        timeout-minutes: 18
+      # DIAGNÓSTICO: o download do Chrome chegou a 100% em execuções anteriores e o passo
+      # ainda assim estourou o timeout depois disso — um padrão consistente com falta de
+      # espaço em disco no runner (o download "termina" mas a escrita final do arquivo, ou
+      # a extração, falha/trava silenciosamente). Este passo mostra o espaço disponível
+      # antes de instalar, para confirmar ou descartar essa hipótese.
+      - name: Debug Disk Space
+        run: df -h
+
+      # Instalação das dependências do SISTEMA OPERACIONAL (libs, fontes) — não baixa o
+      # navegador em si. Historicamente rápido (poucos segundos nos logs anteriores).
+      - name: Install OS Dependencies for Playwright
+        timeout-minutes: 5
         env:
           DEBIAN_FRONTEND: noninteractive
-        run: |
-          if [ "${{ steps.playwright-cache.outputs.cache-hit }}" = "true" ]; then
-            yarn playwright install-deps chromium
-          else
-            yarn playwright install --with-deps chromium
-          fi
+        run: yarn playwright install-deps chromium
+
+      # Download/instalação do binário do Chromium, separado do passo anterior.
+      # DIAGNÓSTICO: em 3 execuções seguidas o log mostrou a barra de progresso chegando a
+      # 100% e o passo ainda assim estourando o timeout depois disso — sinal de que algo
+      # acontece DEPOIS do download "visível" (extração, verificação, ou trava real de I/O).
+      # DEBUG=pw:install liga os logs internos do instalador do Playwright, que normalmente
+      # ficam ocultos, para revelar o que ocorre nesse intervalo.
+      - name: Install Chromium Browser
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        timeout-minutes: 15
+        env:
+          DEBUG: pw:install
+        run: yarn playwright install chromium
 
 
       # Execução dos testes E2E
