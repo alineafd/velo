@@ -28,7 +28,9 @@ export default defineConfig({
   reporter: 'html',
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
-    baseURL: 'https://velo-edcexooc2-aline-dias-projects.vercel.app/',
+    /* No CI, usa a URL do deployment de preview gerado pelo pipeline (variável BASE_URL).
+       Localmente, sem BASE_URL definida, cai no servidor de desenvolvimento (abaixo). */
+    baseURL: process.env.BASE_URL || 'http://localhost:5173',
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
@@ -38,7 +40,7 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'], headless: false },
+      use: { ...devices['Desktop Chrome'] },
     },
 
     // {
@@ -72,10 +74,14 @@ export default defineConfig({
     // },
   ],
 
-  /* Sobe o Vite quando nenhum servidor estiver ouvindo em 5173 (reutiliza se já existir). */
-  webServer: {
-    command: 'npm run dev',
-    url: process.env.BASE_URL || 'http://localhost:5173',
-    reuseExistingServer: !process.env.CI,
-  },
+  /* Sobe o Vite localmente para desenvolvimento (npm run dev). No CI, os testes rodam
+     contra o deployment de preview real da Vercel (via BASE_URL), então este servidor
+     local não é necessário e fica desativado nesse caso. */
+  webServer: process.env.BASE_URL
+    ? undefined
+    : {
+      command: 'npm run dev',
+      url: 'http://localhost:5173',
+      reuseExistingServer: !process.env.CI,
+    },
 });
